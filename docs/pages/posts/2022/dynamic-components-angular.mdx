@@ -1,0 +1,369 @@
+---
+title: 'Dynamic Components in Angular'
+publishedOn: '2022-02-07'
+author: Laurence Ininda
+summary: Building dynamic components in Angular can be tricky at times. However, with Dynamic components, we have granular control over how we can generate components in our application and use this feature to our advantage.
+slug: dynamic-components-angular
+tags: ['angular', 'dynamic components']
+type: dev
+image: ''
+imageCredit: 'Photo by <a href="https://unsplash.com/@theshubhamdhage?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Shubham Dhage</a> on <a href="https://unsplash.com/?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>'
+---
+
+import { StackBlitzEmbed } from '../../../components/StackBlitzEmbed'
+
+# Dynamic Components in Angular
+
+![Cover Image](/assets/post-covers/dynamic-components-angular.jpeg)
+
+Angular components can be created(instantiated) at different points of the applications cycle wither at build-time or at run-time. Creating components at run-time (dynamically) is what we are going to look at.
+
+Broadly speaking, there are two ways to create dynamic components in Angular:
+
+1. Using a `ViewContainerRef` - that [“represents a container where one or more views can be attached to a component.”](https://angular.io/api/core/ViewContainerRef#viewcontainerref) or
+2. By using Angular's built in [`NgComponentOutlet` directive](https://angular.io/api/common/NgComponentOutlet)
+
+The main focus of this article will be the former, using a `ViewContainerRef` to create dynamic components since the Angular documentation is really clear on the second way - using `NgComponentOutlet`.
+
+## Using `ViewContainerRef`
+
+The `ViewContainerRef` is a class that gets access to a container where other components (host views) can be inserted at run time using the `createComponent()` method of the `ViewContainerRef` class.
+
+To dynamically create a component, we have to decide how and where we would like to place the component (the “anchor point”).
+
+### Step 1. Defining the anchor point
+
+How you define the anchor point determines where you can place it within a host component.
+
+#### (i) The Anchor Directive
+
+Following the [Angular docs example](https://angular.io/guide/dynamic-component-loader#the-anchor-directive) on creating a dynamic component, one can utilize a directive placed on an element such that the element will act as an insertion point to the dynamic component (a host - i.e. “Create the dynamic component and place me wherever you see this directive” on an element.)
+
+To achieve this, we first create the directive and inject the `ViewContainerRef` . The `ViewContainerRef` will get a reference to the element on which the directive is placed, dynamically create the component and insert it into the view at the position where the element is.
+
+Take the scenario where we would like to display [a list of movies](https://github.com/laudebugs/dynamic-components-angular/wiki/Movie-Data) with their information (a simple example that can be achieved with other ways but easy enough to demonstrate with dynamic components).
+
+A movie has the following interface:
+
+```ts twoslash
+export interface IMovie {
+    id: number
+    title: string
+    poster: string
+    synopsis: string
+    genres: Array<string>
+    year: number
+    director: string
+    actors: Array<string>
+    hours: Array<string>
+}
+```
+
+We can then define our `MovieHostDirective` as follows:
+
+```ts twoslash
+import { Directive, ViewContainerRef } from '@angular/core'
+
+@Directive({
+    selector: '[movieHost]',
+})
+export class MovieHostDirective {
+    constructor(public viewContainerRef: ViewContainerRef) {}
+}
+```
+
+When we then create our host component template, we can place this directive on an element such as a `div` or using angular's `ng-template` or `ng-container`.
+
+```html
+<!-- using an html element -->
+<div movieHost></div>
+
+<!-- Using ng-template -->
+<ng-template movieHost></ng-template>
+
+<!-- using ng-container -->
+<ng-container movieHost></ng-container>
+```
+
+:::tip
+
+All of the above ways are valid ways of attaching an anchor directive. However, as the Angular docs point out, ["[t]he `ng-template` element is a good choice for dynamic components because it doesn't render any additional output."](https://angular.io/guide/dynamic-component-loader#loading-components)
+
+:::
+
+We can then get a reference to the element with the directive by querying the component template for the first occurrence of the directive (using `ViewChild` ), or all occurrences of the directive (using `ViewChildren`):
+
+```ts
+/* Using ViewChild to get the first occurrence */
+@ViewChild(MovieHostDirective, { static: true }) movieHost: MovieHostDirective;
+
+/* Using ViewChildren to get the all occurrences */
+@ViewChildren(MovieHostDirective, { static: true }) movieHosts: QueryList<MovieHostDirective>;
+```
+
+:::tip
+
+Note that `@ViewChildren` will return a `QueryList` - that contains a list of of `ViewContainerRef` types. To get elements inside of the `QueryList`, one can use the `QueryList`'s `.length` property together with the `.get` method to get an element at a particular index. For example, for a query list of length 1, we can get the first element by `movieHosts.get(0)`. In our example this will return a `ViewContainerRef` that contains a `MovieHostDirective` instance. Documentation on [`@ViewChildren` can be found here](https://angular.io/api/core/ViewChildren) .
+
+:::
+
+#### (ii) Using a Template Variable to target an element as an Anchor
+
+One can target an element to act as a host for our dynamic component by using a template variable that follows the syntax `#` followed by whatever variable name we would like. For example, if our template variable name is to be called: `TemplateRefAnchor` then, in our html template, we would have:
+
+```html
+<!-- using an html element -->
+<div #TemplateRefAnchor></div>
+
+<!-- Using ng-template -->
+<ng-template #TemplateRefAnchor></ng-template>
+
+<!-- using ng-container -->
+<ng-container #TemplateRefAnchor></ng-container>
+```
+
+#### (iii) The Host View as the Anchor
+
+We can use the host view (the component in which we will create the dynamic component) as an anchor for the newly created component. In this case, the created components would be appended at the end of the DOM tree. This works if we know that we don't have to insert the newly created elements before other elements that were generated at build time.
+
+In this case, we inject the `ViewContainerRef` into the component:
+
+### Step 2: Creating the Dynamic Component
+
+Taking the `@ViewChild` use case, (the same applies to the `@ViewChildren` case), the view queries are set before the `ngAfterViewInit` life cycle hook is called. We can then create our dynamic components at this point.
+
+```ts twoslash
+import { Component, AfterViewInit, ViewChild, } from '@angular/core';
+
+/* We defined the MovieHostDirective earlier */
+import { MovieHostDirective } from '../core/directives/movie-host.directive'
+/* Assume we created this MovieComponent component somewhere else */
+import { MovieComponent } from '../core/components/movie/movie.component'
+
+@Component({
+	selector: 'app-home',
+	template: `<ng-template movieHost></ng-template>`,
+})
+export class HomeComponent extends AfterViewInit {
+    /* Look up the element containing the MoviehostDirective */
+    @ViewChild(MovieHostDirective, { static: true, read: ViewContainerRef }) movieHost!: ViewContainerRef
+
+    /* Look Up the template reference called TemplateRefAnchor */
+    @ViewChild('TemplateRefAnchor', { static: true, read: ViewContainerRef }) templateRefAnchor!: ViewContainerRef
+
+    /* Another template reference to use createOptions */
+    @ViewChild('UsingCreateComponentOptionsAnchor', { static: true, read: ViewContainerRef }) createComponentOptionsAnchor!: ViewContainerRef
+
+	/* Create dynamic components here */
+	ngAfterViewInit(){
+        const component = this.movieHost.createComponent(MovieComponent)
+        component.instance.movie = MOVIES[0]
+	}
+}
+```
+
+Similar example while using a template reference as an anchor:
+
+```ts twoslash
+// ... code ommited
+@Component({
+	selector: 'app-home',
+	template: `<ng-template #TemplateRefAnchor></ng-template>`,
+})
+export class HomeComponent extends AfterViewInit {
+    /* Look Up the template reference called TemplateRefAnchor */
+    @ViewChild('TemplateRefAnchor', { static: true, read: ViewContainerRef }) templateRefAnchor!: ViewContainerRef
+
+	ngAfterViewInit(){
+        /* Create the dynamic component using the template reference as an anchor */
+        const component = this.templateRefAnchor.createComponent(MovieComponent)
+        component.instance.movie = MOVIES[0]
+	}
+}
+```
+
+Similar example using the host element as the anchor:
+
+```ts twoslash
+// ... code ommited
+@Component({
+	selector: 'app-home',
+	template: `<h1> Host element </h1>`,
+})
+export class HomeComponent extends AfterViewInit {
+
+    constructor(private viewContainerRef: ViewContainerRef) { }
+
+	ngAfterViewInit(){
+        const component = this.viewContainerRef.createComponent(MovieComponent)
+        component.instance.movie = MOVIES[0]
+	}
+}
+```
+
+:::tip
+
+Notice that we are directly modifying the data of the dynamically created component.😱
+This works, but it becomes problematic when you want to be strict about immutability or uni-directional data flow, and with `QueryLists`, we can't use this approach since the elements in the `QueryList` are immutable.
+
+:::
+
+We also see another issue with this approach. Since we mutate the data of the dynamic component, Angular's change detection will throw the `ExpressionChangedAfterItHasBeenCheckedError` warning that you may have encountered before:
+
+<div style={{display: 'flex', justifyContent: 'center'}}>
+
+<img
+    width="80%"
+    src="https://raw.githubusercontent.com/laudebugs/blog-posts/main/assets/_/expression-changed-after-checked.png"
+/>
+
+</div>
+
+The reason for this particular case is that angular has detected that we have changed the variable after it was last checked when the dynamically created component's view was initialized.
+
+Some ways to resolve this is to move our code into the `ngAfterContentInit` life cycle hook or injecting the change detector (`ChangeDetectorRef`) and calling its `detectChanges()` method:
+
+1. `ngAfterContentInit`
+
+    ```ts twoslash
+    // code ommitted
+    export class HomeComponent implements AfterContentInit {
+
+        /* Implement the AfterContentInit life cycle hook */
+        ngAfterContentInit() {
+            /* Create the component */
+            const movieComponent = this.viewContainerRef.createComponent<MovieComponent>(MovieComponent)
+
+            /* Pass data to the dynamically created component here. */
+            movieComponent.instance.movie = MOVIES[0]
+        }
+    }
+    ```
+
+2. using the `ChangeDetectorRef`
+
+    ```ts
+    // code ommitted
+    export class HomeComponent implements AfterViewInit {
+        /* Inject the ChangeDetectorRef */
+        constructor(private cd: ChangeDetectorRef, private viewContainerRef: ViewContainerRef) {}
+
+        ngAfterViewInit() {
+            /* Create the component */
+            const movieComponent = this.viewContainerRef.createComponent<MovieComponent>(MovieComponent)
+
+            /* Pass data to the dynamically created component here. */
+            movieComponent.instance.movie = MOVIES[0]
+
+            /*  Tell angular to check for changes */
+            this.cd.detectChanges()
+        }
+    }
+    ```
+
+The `ViewContainerRef` also provides a way to inject dependencies into our dynamically created component in the options object ([the optional second parameter of the `createComponent` method](https://angular.io/api/core/ViewContainerRef#createcomponent)). The options object contains the following extra parameters (quoted from the Angular docs):
+
+-   `index` - the index at which to insert the new components host view
+-   `injector` - the injector to use as the parent for the new component
+-   `ngModuleRef` - an ngModuleRef of the component's `NgModule`
+-   `projectableNodes` - list of Dom nodes that should be projected though `ng-content`
+
+Things begin to get a little more interesting as we explore this options object and how it expands our flexibility with dynamically created components. We'll explore the first two for now (`index` and `injector`).
+
+#### `index`
+
+The `index` parameter allows us to insert a dynamically created component at a particular index. Say we would like to create a second component dynamically and place it at index `0`, then we would do something like:
+
+```ts twoslash
+const movieComponent2 = viewContainerRef.createComponent<MovieComponent>(MovieComponent, { index: 0 })
+```
+
+Of course, we can't place an element at index `1` if the length of dynamically created components in the `ViewContainerRef` is `0`.
+
+#### `injector`
+
+We can inject dependencies into our dynamic components using the `injector` parameter.
+
+Say, for instance, we want to pass in the movie when we create the component. We can first create an injector token that we can pass in for the movie dependency:
+
+```ts
+import { InjectionToken } from '@angular/core'
+
+export const MOVIE_TOKEN = new InjectionToken<string>('movie')
+```
+
+In our `movie.component.ts` file, we can then pass this dependency as a required dependency, or mark it as an optional dependency in the constructor - if you want to:
+
+```ts
+// In movie.component.ts
+constructor(@Inject(MOVIE_TOKEN) public movie: IMovie) {}
+
+// As an optional dependency
+constructor(@Inject(MOVIE_TOKEN) @Optional() public movie: IMovie) {}
+```
+
+In our app.component.ts, we would then create an injector and pass it to our component when we create it. Firstly, we provide our token and pass in the value that we would like to be available to the dynamically created component.
+
+```ts
+// ... code ommitted
+export class HomeComponent extends AfterViewInit {
+    constructor(public parentInjector: Injector) {}
+    // code ommited
+    ngAfterViewInit() {
+        /* Create the injector to be passed to the component and provide the value */
+        const injector = Injector.create({
+            providers: [{ provide: MOVIE_TOKEN, useValue: MOVIES[0] }],
+            parent: this.parentInjector,
+        })
+
+        /* Create the component with the injector passed in */
+        const movieComponent = viewContainerRef.createComponent<MovieComponent>(MovieComponent, {
+            index: 0,
+            injector,
+        })
+    }
+}
+```
+
+:::tip
+
+It's interesting to point out that marking the dependency as optional (using the `@Optional()` decorator) means that we can leave it out when creating the dynamic component. Otherwise, we would run into a null injector error when we call `createComponent` (`R3InjectorError`):
+
+<div style={{display: 'flex', justifyContent: 'center'}}>
+
+<img width="80%" src="https://raw.githubusercontent.com/laudebugs/blog-posts/main/assets/_/null-injector-token.png" />
+
+</div>
+
+:::
+
+### Noteworthy
+
+In previous versions of Angular, Dynamically created components had to be added to the `entryComponents` of the `NgModule` in which they are to be imported. With Ivy, this is no longer a requirement and they can be imported the same way as other components. [You can read more about it here.](https://angular.io/guide/deprecations#entrycomponents-and-analyze_for_entry_components-no-longer-required)
+
+### Recap
+
+However you decide to choose where to anchor your components, all these ways are valid and can go far in and of themselves. One advantage of dynamically generating the component using the `ViewContainerRef` is that you have access to the current state of the newly created component and can leverage it for your particular use case.
+
+## `NgComponentOutlet`
+
+The `NgComponentOutlet` directive provides a “declarative approach for dynamic component creation” ([quoted from the Angular docs](https://angular.io/api/common/NgComponentOutlet#ngcomponentoutlet)). Here, the documentation is pretty clear on how to use this directive to dynamically create a component.
+
+:::tip
+The example code can be found in the [stackblitz here.](https://stackblitz.com/edit/dynamic-components-angular-demo) 
+:::
+
+<StackBlitzEmbed 
+    projectId="dynamic-components-angular-demo"
+    openFile="src/app/home/home.component.ts"
+    view="preview"
+/>
+
+### Resources and Links
+
+-   [Dynamic component loader](https://angular.io/guide/dynamic-component-loader)
+-   [ViewContainerRef](https://angular.io/api/core/ViewContainerRef)
+-   [NgComponentOutlet](https://angular.io/api/common/NgComponentOutlet#ngcomponentoutlet)
+-   [QueryList](https://angular.io/api/core/QueryList)
+-   [Stackblitz example on Dynamic Components](https://stackblitz.com/edit/dynamic-components-angular-demo)
+-   [GitHub repository to run locally](https://github.com/laudebugs/dynamic-components-angular/wiki/Movie-Data)

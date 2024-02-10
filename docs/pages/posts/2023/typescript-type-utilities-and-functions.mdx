@@ -1,0 +1,76 @@
+---
+title: 'TypeScript Type Utilities and Functions'
+publishedOn: '2023-02-07'
+author: Laurence Ininda
+summary: A list of useful utitity types and functions that I use across various projects.
+slug: typescript-type-utilities-and-functions
+tags: [typescript]
+type: dev
+imageCredit: 'Photo by <a href="https://unsplash.com/@everhooder?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">ål nik</a> on <a href="https://unsplash.com/photos/77HrB1xRZVc?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>'
+imageOriginalUrl: https://unsplash.com/photos/o4bJomJEQvc
+---
+
+# TypeScript Type Utilities and Functions
+
+![Cover Photo](/assets/post-covers/typescript-type-utilities-and-functions.jpeg)
+
+Here are some utility types and functions that I have found useful that are not enough to qualify publishing them into a library but I end up copy-pasting for use in between projects.
+
+## Custom Utility Types
+
+1. `FilteredType` - A Type that filters down the `TypeToFilter` to a tuple of types that match the `Condition`
+
+    ```ts twoslash
+    type FilteredType<TypeToFilter, Condition> = {
+    	[K in keyof TypeToFilter]: TypeToFilter[K] extends Condition ? K : never
+    }[keyof TypeToFilter]
+    ```
+
+2. `Constructable<T>`- a type that matches a type that can be instantiated, i.e. classes
+
+    ```ts twoslash
+    type Constructable<T> = new (...args: any[]) => T
+    ```
+
+3. `ValueOf` - For a given type, this filters down to a tuple of the values of the type
+
+    ```ts twoslash
+    type ValueOf<T> = T[keyof T]
+    ```
+
+4. `DeepPartial` - Makes all nested properties of an object to be Optional.
+
+    ```ts twoslash
+    type DeepPartial<T> = T extends Object ? {
+        [K in keyof T] : DeepPartial<T[K]>
+    } : T
+    ```
+
+
+## Utility Functions
+
+1. The `filterKeys` type filters a type based on the regex provided. This is useful if you would like to get the keys of an object that meet a certain criteria.
+
+    ```ts twoslash
+    type FilteredType<TypeToFilter, Condition> = {
+    	[K in keyof TypeToFilter]: TypeToFilter[K] extends Condition ? K : never
+    }[keyof TypeToFilter]
+    // ---cut---
+    function filterKeys<T extends Object, K extends RegExp>(source: T, regExp: K): FilteredType<T, K>[]{
+      return Object.keys(source).filter((key) =>
+        regExp.test(key)
+      ) as FilteredType<T, K>[]
+    }
+    ```
+
+2. `getConstructorParams` - this returns a list of the constructor parameters of the class. We can also utilize the `Constructable<T>` type we defined earlier and pass the class into the function:
+
+    ```ts twoslash
+    /* as defined above in the utility types */
+    type Constructable<T> = new (...args: any[]) => T
+
+    function getConstructorParams<T>(constructor: Constructable<T>) {
+        const params = constructor.toString().match(/\(([^)]*)\)/)?.[1]
+        return params?.split(',').map((param) => param.trim()) ?? []
+    }
+    ```

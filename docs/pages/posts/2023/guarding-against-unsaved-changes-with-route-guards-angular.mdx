@@ -1,0 +1,262 @@
+---
+title: 'Guarding against Unsaved Changes in Angular Apps using Route Guards'
+publishedOn: '2023-02-04'
+author: Laurence Ininda
+summary: 'How to utilize route guards to inform users of unsaved changes when navigating to a different page in Angular apps.'
+slug: 'guarding-against-unsaved-changes-with-route-guards-angular'
+tags: ['angular', 'tips']
+type: dev
+image: ''
+imageDescription: ''
+imageCredit: Photo by <a href="https://unsplash.com/@springwellion?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Catherine Kay Greenup</a> on <a href="https://unsplash.com/photos/36vvGmTl198?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
+imageOriginalUrl: 'https://unsplash.com/photos/36vvGmTl198'
+---
+
+import { StackBlitzEmbed } from '../../../components/StackBlitzEmbed'
+import { SpotifyTrack } from '../../../components/SpotifyTrack'
+
+# Guarding against Unsaved Changes in Angular Apps using Route Guards
+
+![Cover Photo](/assets/post-covers/guarding-against-unsaved-changes-with-route-guards-angular.jpeg)
+
+We’ve all sometimes mistakingly closed a document editor with a paragraph or two of unsaved edits, or that browser tab where we were drafting an email. Most of the time, when we attempt to navigate away to other parts of these applications, we get a reminder through a dialog box that we have some information that hasn’t yet been synced in the cloud (if the particular app in question even has an autosave feature).
+
+Within Angular applications, we can leverage the `CanDeactivate` interface to implement a route guard which can then be added to the [route’s `canDeactivate` property](https://angular.io/api/router/Route#properties) to notify a user that they have unsaved changes in their app.
+
+## Defining the Component that can deactivate navigation
+
+:::tip
+
+The `CanDeactivate` is an interface that a component has to implement that allows it to “intercept” navigation calls and cancel or proceed with navigation.
+
+:::
+
+The component that checks whether navigation can proceed or be cancelled contains a function, `canDeactivate`,  that can be called in the route guard to check whether or not navigation away from the component or page can continue or be cancelled.
+
+An interface can be defined which will be implemented by our component. The function to be called can have one of the following return types:
+
+```tsx
+type CanDeactivateFn = (...args: any[]) => Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
+```
+
+In our case, we’ll stick to `boolean | Observable<boolean>`. Our component will call it’s `canDeactivate` function and return `boolean | Observable<boolean>` depending on whatever checks the component runs to determine this.
+
+So we have as our interface:
+
+```tsx
+// deactivatable-component.interface.ts
+export interface DeactivatableComponent {
+    canDeactivate: () => boolean | Observable<boolean>
+}
+```
+
+We can now implement this interface in a component. Assuming we have a form page that would possibly contains unsaved changes, the component has the following functions:
+
+- `containsUnsavedChanges` - a function that returns `true` or `false` checking if the form values have been saved by the user. This implementation could be enhanced to fit any use case — even checking the server for unsaved changes or invalid values and so forth
+- `ngAfterViewInit` - this is a life cycle hook that updates the form with the values saved in local storage. These values could be updated from the state and/or the database
+- `save` - this function updates the state when the user clicks the “Save” button.
+- `canDeactivate` - this is our implementation of the `CanDeactivate` interface that our component implements. This function checks whether changes have been saved when a user tries to navigate away from the page, and if not, opens a dialog to confirm whether the user would like to proceed with or without saving the changes
+
+```tsx
+import { AfterContentInit, Component, ViewChild } from '@angular/core'
+import { NgForm } from '@angular/forms'
+import { MatDialog } from '@angular/material/dialog'
+import { tap } from 'rxjs'
+import { CoreModule } from '../../core/core.module'
+import { DeactivatableComponent } from '../../unsaved-changes.guard'
+import { UnsavedChangesDialog } from '../unsaved-changes-dialog.component'
+
+@Component({
+		standalone: true,
+    imports: [CoreModule],
+    templateUrl: './favorites-form.component.html',
+    styles: [
+        `
+            h1{
+                text-align: center;
+            }
+            form{
+                margin: 1em;
+                display: grid;
+                gap: 1em;
+            }
+            footer{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+
+            }
+            .unsaved-changes{
+                margin-bottom: 0.5em;
+            }
+        `,
+    ],
+})
+export FormComponent implements DeactivatableComponent{
+		/** Our favorites object to save changes */
+    private favorites = { movie: '', tvShow: '' }
+    /** Read the form from the Template */
+    @ViewChild('FavoritesForm', { static: true }) favoritesForm!: NgForm
+
+    constructor(private dialog: MatDialog) {}
+
+    ngAfterContentInit() {
+        /** We need to check the next tick since the controls are not registered yet */
+        setTimeout(() =>
+            this.favoritesForm.setValue(JSON.parse(window.localStorage?.getItem('favorites')) ?? this.favorites)
+        )
+        this.favorites = JSON.parse(window.localStorage?.getItem('favorites')) ?? this.favorites
+    }
+
+    /**
+     * Checks whether the form contains unsaved changes
+     */
+    containsUnsavedChanges() {
+        return Object.keys(this.favorites)
+            .map((key) => this.favoritesForm.value[key] === this.favorites[key])
+            .some((value) => !value)
+    }
+
+    /**
+     * Updates the favorites object and saves it to local storage
+     */
+    save() {
+        this.favorites = { ...this.favoritesForm.value }
+        window.localStorage.setItem('favorites', JSON.stringify(this.favorites))
+    }
+
+    /**
+     * If changes are not saved, a dialog is opened to confirm with the user
+     * that they want to proceed without saving
+     */
+    canDeactivate() {
+        if (!this.containsUnsavedChanges()) {
+            return true
+        } else {
+            return this.dialog.open(UnsavedChangesDialog).afterClosed()
+        }
+    }}
+}
+```
+
+Here would be the template for this component:
+
+```html
+<h1>Favourite Movies & TV Shows</h1>
+<form #FavoritesForm="ngForm">
+    <mat-form-field>
+        <mat-label>Favorite Movie of all time</mat-label>
+        <input name="movie" matInput placeholder="Ex. Interstellar" value="" ngModel />
+    </mat-form-field>
+
+    <mat-form-field>
+        <mat-label>Favorite TV Show of all time</mat-label>
+        <input name="tvShow" matInput placeholder="Ex. The Last of Us" ngModel />
+    </mat-form-field>
+</form>
+<footer>
+    <p *ngIf="containsUnsavedChanges()" class="unsaved-changes" color="warn">The form contains unsaved changes</p>
+    <button mat-raised-button color="primary" (click)="save()">Save</button>
+</footer>
+```
+
+As one can infer from the form, if the user doesn’t save changes, then a dialog will be opened to confirm whether the user would like to save the changes or not
+
+## Implementing the CanDeactivate guard
+
+There are two ways of writing route guards in Angular. Either a class that implements the `CanDeactivate` interface or a function with [the `CanDeactivateFn` signature.](https://angular.io/api/router/CanDeactivateFn)
+
+1. Implementing the guard as a function
+
+    As of Angular 14.2, Functional Route guards were introduced as a way to simplify the writing and wiring up of various types of guards in Angular. You can read more about the updates in [this blog post (Advancements in the Angular Router)](https://blog.angular.io/advancements-in-the-angular-router-5d69ec4c032).
+
+    Our implementation would then simply call the components `canDeactivate` function
+
+    ```tsx
+    import { CanDeactivateFn } from '@angular/router'
+    import { Observable } from 'rxjs'
+    import { DeactivatableComponent } from './deactivatable-component.interface.ts'
+
+    /** Our Route Guard as a Function */
+    export const canDeactivateFormComponent: CanDeactivateFn<DeactivatableComponent> = (component: DeactivatableComponent) => {
+        if (component.canDeactivate) {
+            return component.canDeactivate()
+        }
+        return true
+    }
+    ```
+
+    This function can then be passed directly to the routes as:
+
+    ```tsx
+    const routes: Routes = [
+        {
+            path: 'favorites',
+            component: FavoritesForm,
+            canDeactivate: [canDeactivateFormComponent],
+        },
+    ]
+    ```
+
+2. Implementing the route guard as an injectable class
+
+    Route guards can also be implemented as an injectable class. This implementation looks very similar to the functional guard. And so we have:
+
+    ```tsx
+    import { CanDeactivate } from '@angular/router'
+    import { Observable } from 'rxjs'
+    import { Injectable } from '@angular/core'
+
+    /* Our Route Guard as an Injectable Class */
+    @Injectable({
+        providedIn: 'root',
+    })
+    export class UnsavedChangesGuard implements CanDeactivate<DeactivatableComponent> {
+        canDeactivate: CanDeactivateFn<DeactivatableComponent> = (component: DeactivatableComponent) => {
+            if (component.canDeactivate) {
+                return component.canDeactivate()
+            }
+            return true
+        }
+    }
+
+    export interface DeactivatableComponent {
+        canDeactivate: () => boolean | Observable<boolean>
+    }
+    ```
+
+    This can then also be added to the `canDeactivate` property for the route as:
+
+    ```tsx
+    const routes: Routes = [
+        {
+            path: 'favorites',
+            component: FavoritesForm,
+            canDeactivate: [canDeactivateFormComponent],
+        }
+    ]
+    ```
+
+
+With our guard in place, if we edit the form and try to navigate away without saving, we will be warned through a dialog
+
+You can [preview an example of the app here](https://angular-zzjpgu.stackblitz.io):
+<StackBlitzEmbed
+  projectId="angular-zzjpgu"
+  openFile="src/app/components/home.component.ts"
+  view="preview">
+</StackBlitzEmbed>
+
+## Links and Resources
+
+- [`Route` properties (Angular Docs)](https://angular.io/api/router/Route#properties)
+- [`CanDeactivateFn` signature](https://angular.io/api/router/CanDeactivateFn)
+- [`CanDeactivate` interface](https://angular.io/api/router/CanDeactivate)
+- [Advancements in the Angular Router](https://blog.angular.io/advancements-in-the-angular-router-5d69ec4c032) (Angular Blog)
+
+### Here's my track of the Week
+
+<SpotifyTrack
+  src="https://open.spotify.com/embed/track/5Te2aNOI54aBtQPqLqMsSq?utm_source=generator&theme=0"
+></SpotifyTrack>

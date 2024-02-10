@@ -1,0 +1,66 @@
+---
+title: 'NX Tips: Managing TsConfig Compiler Options Paths when building multiple angular libraries'
+publishedOn: '2022-10-19'
+author: Laurence Ininda
+summary: "When building an angular library lib-a that depends on another angular library lib-b within an nx workspace, you may encounter an error like this: Error: Cannot find module 'lib-b' or its corresponding type declarations. We will see how to fix this error by updating the base tsConfig."
+slug: 'nx-tips-managing-tsconfig-paths-with-multiple-angular-libraries'
+tags: ['angular', 'monorepos', 'nx']
+type: dev
+image: ''
+imageDescription: ''
+imageCredit: 'Photo by <a href="https://unsplash.com/@digital_helium?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Mikhail Abramkin</a> on <a href="https://unsplash.com/s/photos/construction-wallpaper?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>'
+imageOriginalUrl: 'https://unsplash.com/photos/g8Ewh0F0gUw'
+---
+
+# NX Tips: Managing TsConfig Compiler Options Paths when building multiple angular libraries
+
+![Cover Image](/assets/post-covers/nx-tips-managing-tsconfig-paths-with-multiple-angular-libraries.jpeg)
+
+Working with NX allows one to develop publishable or local shared libraries for all the applications and libraries in the monorepo itself.
+
+One issue that one may encounter is when trying to build libraries that depend on other libraries within the same monorepo. Say for instance we are working in an nx workspace called `@boomerang` and within this workspace we have two angular [buildable libraries](https://nx.dev/more-concepts/buildable-and-publishable-libraries#buildable-libraries) called `@boomerang/common` and `@boomerang/utils`. Since these are Angular libraries, NX uses it's own wrapper around `ng-packagr` called [`@nrwl/ng-packagr-lite`](https://nx.dev/packages/angular/executors/ng-packagr-lite). 
+
+:::tip
+
+Note: When creating a new Angular library with `nx generate @nrwl/angular:library`, if the library is both buildable and publishable, i.e. you pass in the `--buildable` and `--publishable` flags, then nx uses [`@nrwl/angular:library`](https://nx.dev/packages/angular/executors/package) to build the library.
+
+:::
+
+If, say `@boomerang/common` imports `@boomerang/utils`, when trying to build `@boomerang/common`, an error I encountered looked like `TS2307: Cannot find module '@boomerang/utils' or its corresponding type declarations.`
+
+When I looked into what was causing the issue, its seems like a small tweak to the `tsConfig.base.json` at the root of the workspace by adding the `@boomerang/utils` dist path to the `compilerOptions` `paths` fixes the import issue.
+
+```diff
+{
+	"compilerOptions": {
+		"paths: {
+			"@boomerang/common": ["libs/common/src/index.ts"],
+- 		    "@boomerang/utils": ["libs/utils/src/index.ts"],
++ 		    "@boomerang/utils": [
++ 			    "dist/libs/utils",
++ 			    "libs/utils/src/index.ts"
++ 		    ]
+		}
+	}
+}
+```
+
+This solution was inspired by this [comment on nx github issues](https://github.com/nrwl/nx/issues/602#issuecomment-414051299) as well as this [commit diff solution](https://github.com/zack9433/poc-workspace/commit/7dfedf7fdaf852a64e3b55960ba0678438aedc64). Both of these mention updating the package.json as well to use the npm scope, i.e. updating the `package.json` for `@boomerang/utils` to look like: 
+
+```json
+{
+	"name": "@boomerang/utils"
+}
+```
+
+However, this update doesn’t necessarily fix the build issue if your packages are not publishable. 
+
+Happy Hacking!
+
+### Resources and Links
+
+- [Publishable and Buildable Nx Libraries](https://nx.dev/more-concepts/buildable-and-publishable-libraries#publishable-and-buildable-nx-libraries)
+- [`@nrwl/ng-packagr-lite` docs](https://nx.dev/packages/angular/executors/ng-packagr-lite#@nrwl/angular:ng-packagr-lite)
+- [`@nrwl/angular:library` docs](https://www.notion.so/NX-Tips-Managing-TsConfig-Compiler-Options-Paths-when-building-multiple-angular-libraries-69a68018574242bb80bf27ee1ed0e60c)
+- [Github Comment with solution](https://github.com/nrwl/nx/issues/602#issuecomment-414051299) 
+- [poc-workspace diff by zack9433 on github to show a solution](https://github.com/zack9433/poc-workspace/commit/7dfedf7fdaf852a64e3b55960ba0678438aedc64)

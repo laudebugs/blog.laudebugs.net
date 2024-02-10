@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+:root {
+  --vocs-color_background: #E6E6E9;
+}
+ 
+:root.dark {
+  --vocs-color_background: #232225;
+}

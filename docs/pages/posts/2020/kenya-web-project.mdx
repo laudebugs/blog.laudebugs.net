@@ -1,0 +1,232 @@
+---
+title: 'Kenya Web Project'
+publishedOn: '2020-06-05'
+author: Laurence Ininda
+slug: 'kenya-web-project'
+tags: [python,lighthouse, node.js]
+type: dev
+image: ''
+summary: "Examining performance and data download sizes of Kenya's top 500 websites. Expecially in emerging markets, website developers need to build small and efficient web applications."
+imageCredit: 'Photo by <a href="https://unsplash.com/@joecalih?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Joecalih</a> on <a href="https://unsplash.com/s/photos/nairobi?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>'
+---
+# Kenya Web Project
+
+![Cover Image](/assets/post-covers/kenya-web-project.jpeg)
+
+## Foreground
+
+The internet is a vast “land” with plenty of room to create, share and find content. Internet usage in Kenya is increasing by the year. COVID-19 brought to the forefront, the importance of having an online presence. Companies like Amazon, that were internet-first, widened their market share of internet sales and became more relevant. Those companies that didn't have an online presence realized that they needed to adapt quickly to the times. Even people realized that they needed to build an online presence to showcase their work or seek jobs.
+
+In developing countries like Kenya, with companies shifting online, there is a growing need to track these trends. However, data is still expensive for the average Kenyan even though data consumption in the country has been increasing by the year. Therefor, in as much as companies are moving online, they need to take into consideration this very fact that accessing websites should not require a large amount of data – say more than 2MB (to be revised later). And web developers need to be creative in ways that they can reduce data consumption on subsequent website visits to the sites they build. For instance, through caching or giving users a low-data version of their site once they land on the page before loading any subsequent content.
+
+## Conceptualization
+
+Through this project, I would like to accomplish two things:
+
+-   Create a directory of Kenyan websites - websites with extensions “.co.ke” or “.ke” or that include “kenya” within the domain name.
+-   Of the collected sites, note how much data is downloaded on the landing page of the site and organize this data into a repository.
+
+## Data Collection and Preparation
+
+How many websites can I find by randomly searching common words and the big companies in Kenya?
+
+After considering this, I searched the internet to try to find a difinitive list of websites in Kenya. To find this list, I would have to contact organizations like The Kenya Network Information Centre (KENIC) to obtain this information. And although this seemed like the route to go, I also found a list of the top 500 websites in Kenya provided by Alexa and figured that this list would be more useful to use as a baseline of websites in Kenya. And as the list showed, there's a large number of domains that do not end with .co.ke or .ke that Kenyans use. After signing up for the free trial, I parsed the data to this json file using a simple java script.
+
+Considering all the information that lighthouse provided, two metrics seemed important: the performance of the site as well as the amount of data downloaded when a user accesses the website., i.e. Total size.
+Two metrics: Performance and total size downloaded on page load
+The size will vary from device to device since mobile devices might have cached the websites before or CDN's might be used to deliver a faster and smaller payload.
+
+### Why lighthouse?
+
+Google provides Lighthouse as a developer tool to generate a report on a website. The tool is also available as a commandline interface tool. However, I wanted to use the tool as part of a node.js project. Therefore, I stumbled on this project by Sahava on github from which I borrowed heavily and modified to my own use.
+Generating the Reports
+
+Since my computer crawled at even the thought of running lighthouse on 500 websites, I decided to run the runLightHouse.js script on AWS.
+Here are the steps for creating an AWS instance:
+After Creating an Amazon AWS account,
+Create an EC2 instance. You can proceed with launching an instance that contains the free tier.
+
+```
+Launch instance > Ubuntu 20.04 (with Free tier eligible) > General Purpose Instance Type > Choose an Existing Key-pair for ssh into your instance or download a new instance >Launch instance
+```
+
+I however created an instance type with a GPU (just for fun) and to perform lighthouse processes fast. (this cost a couple of cents/hr)
+SSH into your instance:
+
+```bash
+# move your .pem file into the come folder
+# Assuming you downloaded the .pem file to the downloads folder:
+# cd into the root directory
+cd
+# check whether a .ssh folder exists
+ls -al
+# if it doesn't, create the folder
+mkdir .ssh
+#move the .pem file into the .ssh folder. Here assume I call my .pem file myKeyPair
+mv [path where the .pem file exists]/myKeyPair.pem myKeyPair.pem
+# change the permissions of the .pem file
+chmod 400 .ssh/myKeyPair.pem
+```
+
+Copy your Public DNS (IPv4) from your AWS instance - this is usually located at your instances page when you click on your instance
+
+SSH into your instance
+
+```bash
+# replace [my public ip with the actual ip]
+ssh -i ~/.ssh/myKeyPair.pem ubuntu@[Public DNS (IPv4)]
+# you may be asked whether to type yes or no to proceed. Type yes to proceed
+
+# Prepare the server to run your script
+install git
+sudo apt install git -y
+# Install latest version of npm
+curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash
+sudo apt-get install -y nodejs
+# Install Chrome. I referenced this article
+
+# Download Google chrome
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+# install google chrome
+sudo apt install ./google-chrome-stable_current_amd64.deb
+```
+
+### Running the script
+
+```bash
+# Clone the repo
+git clone https://github.com/laudebugs/kenya-web-project.git
+
+# enter project folder
+cd kenya-web-project
+
+# Install packages
+npm install
+
+# Run the script
+node generateReports.js
+# Exit the AWS instance
+```
+
+## Update
+
+I tried running the script on an amazon linux server but there was always an error generated, so I switched to using an ubuntu 20.04 instance.
+Below are the instructions fro setting up and to ssh into an Amazon linux ec2 instance:
+After Creating an Amazon AWS account,
+Create an EC2 instance. You can proceed with launching an instance that contains the free tier.
+
+```text
+Launch instance > Amazon Linux (with Free tier eligible) > General Purpose Instance Type > Choose an Existing Key-pair for ssh into your instance or download a new instance >Launch instance
+```
+
+I however created an instance type with a GPU (just for fun) and to perform lighthouse processes fast. (this cost a couple of cents/hr)
+SSH into your instance:
+
+````bash
+# move your .pem file into the come folder
+# Assuming you downloaded the .pem file to the downloads folder:
+# cd into the root directory
+cd [root directory]
+
+# check whether a .ssh folder exists
+ls -al
+
+# if it doesn't, create the folder
+mkdir .ssh
+#move the .pem file into the .ssh folder. Here assume I call my .pem file myKeyPair
+mv [path where the .pem file exists]/myKeyPair.pem myKeyPair.pem
+
+Change the permissions of the .pem file
+```bash
+chmod 400 .ssh/myKeyPair.pem
+````
+
+Copy your Public DNS (IPv4) from your AWS instance - this is usually located at your instances page when you click on your instance
+
+````
+SSH into your instance
+```bash
+# replace [my public ip with the actual ip]
+ssh -i ~/.ssh/myKeyPair.pem ec2-user@[Public DNS (IPv4)]
+````
+
+You may be asked whether to type yes or no to proceed. Type yes to proceed
+
+```bash
+# Prepare the server to run your script
+# install git
+sudo yum install git -y
+```
+
+install npm using Amazon's instructions
+
+```bash
+# Install latest version of npm
+npm install -g npm@latest
+# Install Chrome. I referenced this article
+curl https://intoli.com/install-google-chrome.sh | bash
+```
+
+#### Running the script
+
+````bash
+#Clone the repo
+git clone https://github.com/laudebugs/kenya-web-project.git
+
+# enter project folder
+```bash
+cd kenya-web-project
+# Install packages
+npm install
+# Exit the AWS instance
+exit
+````
+
+## Analysis
+
+Having obtained two additional metrics of each website, i.e. the performance and size of page downloaded, then we can plot several graphs to gauge how one metric affects the other.
+
+In order to answer questions that the data presented, there still remained missing pieces of information that would enable me to analyze the data accurately. With metrics such as performance, size of webpage downloaded and average time spent on a website, we could take a look at the general trend of the top websites in Kenya as shown below.
+
+<img
+    alt="Size of the web page downloaded"
+    src={
+        'https://raw.githubusercontent.com/laudebugs/kenya-web-project/master/analysis/graphs/Size%20of%20the%20web%20page%20downloaded.png'
+    }
+    width={'100%'}
+/>
+
+The optimal size of a web page is 0 - 1 MB downloaded once a use logs onto a site. This is of course, not taking into account cached resources that might reduce the size of the page downloaded.
+
+<img
+    alt="TimeSpentOnWebsite"
+    src={'https://raw.githubusercontent.com/laudebugs/kenya-web-project/master/analysis/graphs/TimeSpentOnWebsite.png'}
+    width={'100%'}
+/>
+
+The modal time spent on a website by Kenyans is 3 minutes with the average coming to 7.2682 minutes.
+
+## Postscript
+
+In analyzing the dataset, there's a temptation to draw immediate conclusions from the various datapoints such as comparing the time spent and how this changes based on the size of the web page downloaded when a user accesses the website. However, this analysis doesn't take into account the fact that different websites serve different functions. For instance, a person logging into the Kenya Revenue Authority website would perhaps use the site for a specific predetermined use case while a person using YouTube might not have a goal in mind while using the site. And therefore one would need to make assumptions to immediately draw conclusions from the data. On modelling the graph, the size of the page downloaded doesn't relate to how much time is spent on the site.
+Further information is needed to ask deeper questions from the dataset. One such piece is the genre of the website which would be able to draw distinctions between the different websites and make comparisons within websites of a certain type.
+As of now, the dataset is freely available to use and for more research to be done. Especially at a time when the internet is crucial to keep systems moving during Covid-19, we need to examine more closely how Kenyans use the internet.
+Hiccups along the way
+In generating the lighthouse reports for the site, I decided to splice the list of websites into groups of 30 websites at a time - because even AWS servers weren't running all the reports smoothly. At other times, I ran 50 reports at a time. However, while doing this, I realised I skipped over close to 70 websites spread over my input set of 500. And so, I wrote a small python script to find the missing sites.
+I had to manually run the website Bet365.com using the lighthouse cli because the node script kept timing out
+
+### After installing lighthouse
+
+`npm install -g lighthouse`
+
+```bash
+lighthouse https://www.bet365.com/ --quiet --output json --output-path ./www_Bet365_com.json
+```
+
+### References
+
+-   [Multisite Lighthouse](https://github.com/sahava/multisite-lighthouse)
+-   [Top Sites in Kenya](https://www.alexa.com/topsites/countries/KE)
+-   Google Chrome Lighthouse [Github Repository](https://github.com/GoogleChrome/lighthouse)
+
+-> Checkout the [Github Repository](https://github.com/laudebugs/kenya-web-project)

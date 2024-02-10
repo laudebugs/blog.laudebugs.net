@@ -1,0 +1,193 @@
+---
+title: 'Improving Your Git Workflows with Aliases'
+publishedOn: '2023-03-11'
+author: Laurence Ininda
+summary: 'There are plenty of times when I have found myself looking up git commands that I would like to execute in my day to day whether on my day job or side project work. As such, git provides the ability to configure aliases — short commands that represent longer commands that git executes.'
+slug: 'improve-your-git-workflows-with-aliases'
+tags: ['git', 'productivity']
+type: dev
+image: ''
+imageDescription: ''
+imageCredit: 'Photo by <a href="https://unsplash.com/@mikes1978?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Michal Pech</a> on <a href="https://unsplash.com/photos/xS5bOLKCSLw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>'
+imageOriginalUrl: 'https://unsplash.com/photos/xS5bOLKCSLw'
+---
+
+# Improving Your Git Workflows with Aliases
+
+![Cover Photo](/assets/post-covers/improve-your-git-workflows-with-aliases.jpeg)
+
+There are plenty of times when I have found myself looking up git commands that I would like to execute in my day to day whether on my day job or side project work. As such, git provides the ability to configure aliases — short commands that represent longer commands that git executes.
+
+## Configuring Git Aliases
+
+A git alias can be set up by running the command `git config --global alias.<alias-name> <command-to-execute>`. Where `<alias-name>` represents the command that triggers the `<command-to-execute>`. A simple example would be setting up a git alias, `git ac` that will take a commit message, stages all files and commit them all in one go. Setting up this command would look like:
+
+```txt
+git config --global alias.ac "\!git add -A && git commit -S -m"
+```
+
+This command then updates the global `.gitconfig` file, by adding an entry under `[alias]` called `ac` that enables this command to be executed in any git repository:
+
+```txt
+[alias]
+	ac = !git add -A && git commit -S -m
+```
+
+After editing some files in a git repository, running `git ac "docs: update notes"` stages all changed files in that repository and commits them using the commit message `"docs: update notes"`.
+
+## A list of Useful Git Aliases
+
+Herein, therefore, is a list of git aliases that drive my daily work.
+
+I’ll group the commands into (a) Commands within a git repository and (b) commands within a **bare** git repository
+
+### Within a normal git repository
+
+:::tip
+These Commands can also be performed within a worktree in a bare git repository
+:::
+
+1. `ac` - Pass in a commit message to the git alias. The command stage all files (`git add -A`) and commits with the commit message passed in.
+
+    ```txt
+    ac = !git add -A && git commit -S -m
+    ```
+
+2. `add-string` - Among all the changed files in a git repository, Stage only the files where the diff contains a certain substring. Fos instance, if one would want to stage only files that contain the substring `randomFilterFunction`, then, executing the command `git add-string "randomFilterFunction"` would only stage that files where the diff contains the substring `“randomFilterFunction”`.
+
+    ```txt
+    add-string =  "!sh -c \"git diff -G '$1' --name-only | xargs git add\" -"
+    ```
+
+3. `last-checked` - Within a git repository, find the last `n` checked out branches.
+
+    ```txt
+    last-checked = !git reflog | grep -i 'checkout: moving' | head -n
+    ```
+
+    This is useful when trying to find out the last few branches that were worked on, especially when switching between branches. For instance, running `git last-checked 5` would return output similar to:
+
+    ```txt
+    ae956a5 HEAD@{4}: checkout: moving from main to chore/update-new-env-gh
+    ae956a5 HEAD@{5}: checkout: moving from chore/update-node-ci to main
+    ae956a5 HEAD@{7}: checkout: moving from main to chore/update-node-ci
+    aafa50f HEAD@{9}: checkout: moving from docs/update to main
+    fba6d0a HEAD@{11}: checkout: moving from fix/github-actions-permissions to docs/update
+    ```
+
+4. `parent` - For a given branch, find the branch from which the current branch was created from. [Source for this git alias command on StackOverflow.](https://stackoverflow.com/questions/3161204/how-to-find-the-nearest-parent-of-a-git-branch)
+
+    ```txt
+    parent = "!git show-branch | grep '*' | grep -v \"$(git rev-parse --abbrev-ref HEAD)\" | head -n1 | sed 's/.*\\[\\(.*\\)\\].*/\\1/' | sed 's/[\\^~].*//' #"
+    ```
+
+5. `push-origin` - Sets up the upstream and pushes the local branch to the remote origin. If a branch is created locally, one would have to publish the branch and push to it. This command provides an easy interface for that process from the command line.
+
+    ```txt
+    push-origin = !git push --set-upstream origin \"$(git rev-parse --abbrev-ref HEAD)\"
+    ```
+
+6. `uncommit` - This resets the last commit made within a git repository.
+
+    ```txt
+    uncommit = reset --soft HEAD~1
+    ```
+7. `cb` - An alias for the command: `git checkout -b {branch_name}` - Checks out a new branch
+    ```txt
+    cb = checkout -b
+    ```
+8. `adc` - Stages and commits all the edited files in a git repo
+    ```txt
+    adc = !git add -A && git commit -S -m
+    ```
+
+
+### Working with a bare git repository
+
+:::tip
+Working within a git repository provides much needed functionality. However, bare repositories with git worktrees. provide an opportunity to switch in between different pieces of work seamlessly, without having to clone the repository over and over again.
+:::
+
+1. `clone-bare` - Pass in a git url and clone into a bare repository.
+
+    ```txt
+    clone-bare = !git clone --bare
+    ```
+
+2. `wa` -”worktree add” - Within a bare repository, this git alias takes two commands, the first being the new branch name, the second being the base branch. The new worktree will be located at the path that matches the branch name and based on the base branch.
+
+    Note: The Command `git rev-parse --git-common-dir` ensures that worktree paths are always generated from the root of the bare repo
+
+    ```txt
+    wa = "!sh -c \"cd $(git rev-parse --git-common-dir) && git worktree add --no-track -b '$1' '$1' '$2'\" -"
+    ```
+
+3. `fetch-some` - Inside a bare repository, fetch and update the local branches  of the comma-delimited list of branches. This is useful if one would want to update the local branches with their remote updates.
+
+    ```txt
+    fetch-some = "!f() { IFS=','; for b in $1; do git fetch origin $b:$b; done; unset IFS; }; f"
+    ```
+
+4. `fetch-all` - For all the worktrees in a bare repository, update with their remotes. This is the equivalent of going into each of the worktrees and running `git pull`
+
+    ```txt
+    fetch-all = "!git for-each-ref --format='%(refname:short)' refs/heads/ | while read branch; do git fetch origin $branch:$branch; done"
+    ```
+
+
+### The Complete List
+
+All the git aliases mentioned above can be directly added to the `~/.gitconfig` file via a code editor.
+
+```txt
+# The .gitconfig file
+
+[alias]
+		# Pass in a commit Message, This will stage ALL the changed files and commit with the provided commit message
+    ac = !git add -A && git commit -S -m
+
+    # Filter changed files based on a string and ONLY stage files that contain that substring in the diff
+    add-string =  "!sh -c \"git diff -G '$1' --name-only | xargs git add\" -"
+
+    c = !git commit -S -m
+
+    # This clones a git repository into bare repository
+    clone-bare = !git clone --bare
+
+    # For each the comma-delimited x of provided input a,b,c,...,n run git fetch origin x:x
+    fetch-some = "!f() { IFS=','; for b in $1; do git fetch origin $b:$b; done; unset IFS; }; f"
+
+    # For each branch y in a git bare repo, run git fetch origin y:y
+    fetch-all = "!git for-each-ref --format='%(refname:short)' refs/heads/ | while read branch; do git fetch origin $branch:$branch; done"
+
+    # List the last n checked out branches in a git repository
+    last-checked = !git reflog | grep -i 'checkout: moving' | head -n
+
+    # lists the "parent" branch for a given branch
+    # Source: https://stackoverflow.com/questions/3161204/how-to-find-the-nearest-parent-of-a-git-branch
+    parent = "!git show-branch | grep '*' | grep -v \"$(git rev-parse --abbrev-ref HEAD)\" | head -n1 | sed 's/.*\\[\\(.*\\)\\].*/\\1/' | sed 's/[\\^~].*//' #"
+
+    # Sets up the upstream and pushes the local branch to the remote origin
+    push-origin = !git push --set-upstream origin \"$(git rev-parse --abbrev-ref HEAD)\"
+
+    # This resets the last commit made
+    uncommit = reset --soft HEAD~1
+
+    # This git alias takes two commands, the first being the new branch name, the second being the base branch
+    # The new worktree will be located at the path that matches the branch name and based on the base branch
+    # Git Worktree Documentation: https://git-scm.com/docs/git-worktree
+    # The Command `git rev-parse --git-common-dir ensures that worktree paths are always generated from the root of the bare repo
+    wa = "!sh -c \"cd $(git rev-parse --git-common-dir) && git worktree add --no-track -b '$1' '$1' '$2'\" -"
+
+    # Adds all the files in the current directory and commits with the provided commit message
+    adc = !git add -A && git commit -S -m
+
+    # checkout a new branch
+    cb = checkout -b
+```
+## References
+
+- [Git Documentation on Git Aliases](https://www.git-scm.com/book/en/v2/Git-Basics-Git-Aliases#_git_aliases)
+- [Atlassian Guide on Git Alias](https://www.atlassian.com/git/tutorials/git-alias)
+- [Git Worktree Documentation](https://git-scm.com/docs/git-worktree)
+- [A reference to my own `.gitconfig` file](https://github.com/laudebugs/uses/blob/master/dotfiles/.gitconfig)

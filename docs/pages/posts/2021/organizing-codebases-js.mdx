@@ -1,0 +1,245 @@
+---
+title: 'Organizing Codebases with Automation Tools'
+publishedOn: '2021-11-17'
+author: 'Laurence Ininda'
+summary: "JavaScript or TypeScript codebases can be a hustle to manage. Some people like their spacebars a lot more than their tabs; How can we track changes effectively on each commit? Or how can we automate versioning? We all can do with some standards in our codebase that allow us to keep track of what's going on in them."
+slug: 'organizing-codebases-js'
+tags: ['guides', 'eslint', 'prettier', 'commitlint', 'commitizen', 'husky', 'automation', 'standard version']
+type: dev
+image: ''
+imageCredit: 'Photo by <a href="https://unsplash.com/@maxvdo">Birmingham Museums Trust</a> on <a href="https://unsplash.com/photos/MZ0zABL7Bwo">Unsplash</a>'
+imageOriginalUrl: 'https://unsplash.com/photos/MZ0zABL7Bwo'
+---
+
+# Organizing Codebases with Automation Tools
+
+![Birmingham Museums Trust](/assets/post-covers/organizing-codebases-js.jpeg)
+
+:::tip
+  Over the past couple of months, shuffling between different projects, and also work, I found it particularly useful to have some standard
+  way to organize a codebase - even if each of the projects differed in some way or another. This little guide is what I come back to
+  whenever I'm scaffolding a new project.
+:::
+
+## Tools Mentioned in this guide
+
+- [Husky](https://typicode.github.io/husky/#/)
+- [Prettier](https://prettier.io/)
+- [Eslint](https://eslint.org/)
+- [Commitlint](https://www.npmjs.com/package/@commitlint/cli)
+- [Commitizen](https://www.npmjs.com/package/commitizen)
+- [Standard Version](https://www.npmjs.com/package/standard-version)
+
+### [Husky](https://typicode.github.io/husky/#/)
+
+Husky is used to make our commits more cool, and powerful to help development easier. In this guide, husky will be used to format both the files (source code) and commits themselves before they are executed (thus "pre" in the pre-commit hooks).
+
+[Read more here.](https://typicode.github.io/husky/#/)
+
+- [Initialize Husky:](https://typicode.github.io/husky/#/?id=automatic-recommended)
+
+    ```bash
+    # install husky
+    npm install -D husky
+
+    # initialize
+    npx husky-init
+    ```
+
+## Prettier & EsLint
+
+If we would like to have our commits automatically format our code on every commit - to ensure that the codebase follows a specified standard, defined in the `prettierrc` file, then this is a handy tool to have.
+
+1. Add Prettier and eslint to your project:
+
+    ```bash
+    # prettier
+    npm install -D prettier
+
+    # eslint
+    npm install -D eslint
+    ```
+
+2. Add a prettier [config file](https://prettier.io/docs/en/configuration.html) to the repository - named `.prettierrc.json` (or following the [specified format](https://prettier.io/docs/en/configuration.html) for configuration files:
+
+   ```json
+   {
+     "trailingComma": "all",
+     "tabWidth": 4,
+     "semi": false,
+     "singleQuote": true
+     //more rules below
+   }
+   ```
+
+3. Initialize EsLint:
+
+   ```bash
+   npx eslint --init
+   ```
+
+4. Set up ESLint to work with prettier
+
+   Add prettier plugin to the eslint configuration file:
+
+   ```json
+   // .eslintrc.json
+   {
+     "extends": [
+       // other extensions,
+       "prettier"
+     ]
+   }
+   ```
+
+   Now, you can specify prettier rules to work with your linter and not have both ESLint and Prettier enforcing different styles
+
+5. Add [Prettier Pre-commit Hook](https://prettier.io/docs/en/precommit.html#option-2-pretty-quickhttpsgithubcomazzpretty-quick):
+
+    ```bash
+    npm install -D pretty-quick
+
+    npx husky set ./husky/pre-commit "npx pretty-quick --staged"
+
+    ```
+
+> There are more ways to configure your prettier pre-commit hooks [found here](https://prettier.io/docs/en/precommit.html#docsNav).
+
+## [CommitLint](https://github.com/conventional-changelog/commitlint) & CommitLint Hooks
+
+Commitlint is a tool that lints commits - and make sure they are up to standard.
+We will also add a husky pre-commit hook that lints our commit messages
+
+1. [Install Commitlint](https://github.com/conventional-changelog/commitlint#getting-started)
+
+   ```bash
+   npm install -D @commitlint/config-conventional @commitlint/cli
+
+   # Configure commitlint to use conventional config
+   echo "module.exports = {extends: ['@commitlint/config-conventional']}" > commitlint.config.js
+   ```
+
+2. . Add the commitlint hooks:
+
+   ```bash
+   # Add hook
+   npx husky add .husky/commit-msg 'npx --no -- commitlint --edit "$1"'
+   ```
+
+3. Add a husky pre-commit hook config to the package.json
+    ```json
+    "husky": {
+      "hooks": {
+        "prepare-commit-msg": "exec < /dev/tty && git cz --hook || true"
+      }
+    }
+    ```
+
+## [Commitizen](https://github.com/commitizen/cz-cli)
+
+Commitizen is a command line interface tool that can be helpful in making commits a pretty-forward process following your linting rules.
+
+1.  Install the tool
+
+    ```bash
+    npm install -D commitizen
+    ```
+
+2.  Add a script to the package.json to easily run commitizen:
+
+    ```json
+    {
+        "scripts": {
+          "commit": "cz"
+        }
+    }
+    ```
+
+    An Example use:
+
+<img
+  src="https://raw.githubusercontent.com/MechanicalHuman/hnp-utilities/master/packages/commitizen-adapter/hero.png"
+  width="100%"
+/>
+
+[source](https://www.npmjs.com/package/@hnp/cz/v/1.0.7)
+
+:::tip
+You can customize the fields available in your commitizen CLI by <a href="https://medium.com/vlad-arbatov/development-how-to-adapt-a-custom-conventional-changelog-33ff3b13c832"> following this guide</a>.
+:::
+
+## Conventional Changelog
+
+This will assist in generating changelogs automatically from commits:
+
+1. Initialize:
+    ```bash
+    npx commitizen init cz-conventional-changelog -D --save-exac
+    ```
+
+## Versioning and Release
+
+We can use [Standard Version](https://github.com/conventional-changelog/standard-version#standard-version) to automatically generate versions for out projects.
+
+1.  Install Standard Version
+
+    ```bash
+    npm install -D standard-version
+    ```
+
+2.  Add scripts to easily run releases and generate changelogs automaticallly:
+
+    ```json
+    {
+      "scripts": {
+        "release": "standard-version"
+      }
+    }
+    ```
+
+    Another option to Standard version is [`semantic-release`](https://github.com/semantic-release/semantic-release)
+
+You can now run your first release by:
+
+```bash
+npm run release
+```
+
+> Plug: Here is an example of a [changelog for my website](https://www.laudebugs.me/changelog).
+
+If you create a release - then you can push that release by running:
+
+```bash
+git push --follow-tags
+```
+
+<hr />
+
+## Update (25th Feb 2022)
+I ended up writing a simple npm package to automate setting this whole process up for new projects
+You can find the package [here](https://www.npmjs.com/package/organize-codebase).
+
+## References & Resources
+
+### Articles
+
+- [How to control your deployments and versioning with semantic-release & friends](https://blog.logrocket.com/never-guess-about-project-history-again-31f65091f668/)- (logrocket)
+- [Commit Standard and Semantic Versioning for any project](https://dev.to/migu3l/commit-standard-and-semantic-versioning-for-any-project-1ihc) - (dev)
+- [Automate Semantic Versioning with Conventional Commits ](https://medium.com/@jsilvax/automate-semantic-versioning-with-conventional-commits-d76a9f45f2fa)(medium)
+- [Automatically generate and release a changelog using Node.js](https://blog.logrocket.com/automatically-generate-and-release-a-changelog-with-node-js/) (logrocket)
+- [Development: How to adapt a custom conventional changelog](https://medium.com/vlad-arbatov/development-how-to-adapt-a-custom-conventional-changelog-33ff3b13c832) (medium)
+- [Make everyone in your project write beautiful commit messages using commitlint and commitizen](https://dev.to/sohandutta/make-everyone-in-your-project-write-beautiful-commit-messages-using-commitlint-and-commitizen-1amn) - loved this one!
+
+### Documentation
+
+- [Husky](https://typicode.github.io/husky/#/)
+- [ESLint - Getting started](https://eslint.org/docs/user-guide/getting-started)
+- [Prettier - Pre-Commit Hooks](https://prettier.io/docs/en/precommit.html#docsNav)
+- [Commitizen](https://github.com/commitizen/cz-cli)
+- [Commitlint](https://github.com/conventional-changelog/commitlint#getting-started)
+- [Conventional Changelog](https://github.com/conventional-changelog/standard-version#standard-version)
+- [Semantic Release](https://github.com/semantic-release/semantic-release)
+
+### Other Useful Links
+
+- [Gitmoji](https://gitmoji.dev/)

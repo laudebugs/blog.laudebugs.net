@@ -1,0 +1,70 @@
+---
+title: 'Implementation of GraphQL subscriptions on React Native using Apollo Client with a Lambda GrahphQL Server'
+publishedOn: '2022-01-24'
+author: Laurence Ininda
+slug: 'graphql-subs-with-aws-lambda-and-apollo-client'
+tags: [graphql, aws lambda, apollo]
+type: dev
+image: ''
+summary: "A simple walkthrough on how to use AWS Apollo links with the Apollo GraphQL client on a React Native project"
+imageCredit: 'Photo by <a href="https://unsplash.com/@timmossholder?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Tim Mossholder</a> on <a href="https://unsplash.com/s/photos/connection?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>'
+---
+
+# Implementation of GraphQL subscriptions on React Native using Apollo Client with a Lambda GrahphQL Server
+
+![Cover Image](/assets/post-covers/graphql-subs-with-aws-lambda-and-apollo-client.jpeg)
+
+GraphQL queries and mutations to an AWS Lambda GraphQL api can be achieved by implementing libraries such as [Apollo Client](https://www.apollographql.com/docs/react/get-started/).
+However, implementing subscriptions isn't as straight forward since the [AWS Lambda is a serverless architecture.](https://stackoverflow.com/questions/53734213/apollo-server-lambda-subscriptions#:~:text=GraphQL%20subscriptions%20are%20not%20supported,which%20kills%20the%20websocket%20connection.)
+Implementing subscriptions can be done [following the AWS implementation docs](https://docs.aws.amazon.com/appsync/latest/devguide/real-time-websocket-client.html#appsynclong-real-time-websocket-client-implementation-guide-for-graphql-subscriptions) - although we don't want to go into that rabbit hole as well as the option of using [AWS' Amplify JavaScript Libraries](https://docs.amplify.aws/lib/q/platform/js/).
+
+> In our case, we would like to take advantage of [Apollo Client's](https://www.apollographql.com/docs/react/why-apollo/) apis that offer useful features within a react application such as hooks, caching, and also since it's simpler (one can argue). 💁
+
+## Setup
+To get started, working with queries and mutations can be achieved by following [Apollo's documentation.](https://www.apollographql.com/docs/react/get-started/). Where it get's interesting is once a subscription is needed to be made by the client.
+
+First, we need to configure our Apollo client to [make use of the Apollo links to connect to the AppSync api](https://github.com/awslabs/aws-mobile-appsync-sdk-js#aws-appsync-links-for-apollo-v3). These are: `aws-appsync-auth-link` and `aws-appsync-subscription-link`. The former provides authentication for the Apollo client to connect to the api while the later provides the subscription tooling that AWS Lambdas need to work with subscriptions, which [we would have otherwise needed to implement ourselves](https://docs.aws.amazon.com/appsync/latest/devguide/real-time-websocket-client.html#appsynclong-real-time-websocket-client-implementation-guide-for-graphql-subscriptions).🤢
+
+The example provided in [the docs here](https://github.com/awslabs/aws-mobile-appsync-sdk-js#using-authorization-and-subscription-links-with-apollo-client-v3-no-offline-support) is pretty straightforward.
+In our case, the `auth` provided to the Apollo links would look like:
+```ts
+const auth = {
+  type: 'OPENID_CONNECT'
+  jwtToken: async () => token, // Required when you use Cognito UserPools OR OpenID Connect. token object is obtained previously
+};
+```
+Although, the only thing to note is that, since we need to provide a token to the client, we just pass in our token that retrieves the most current Open ID JWT to pass to our requests.
+
+Thus:
+```ts
+const link = ApolloLink.from([
+    createAuthLink({
+        url: API_URL,
+        region: AWS_REGION,
+        auth: { type: 'OPENID_CONNECT', jwtToken: async () => await getToken() },
+    }),
+    createSubscriptionHandshakeLink(
+        { url: API_URL, region: AWS_REGION, auth: { type: 'OPENID_CONNECT', jwtToken: async () => await getToken() } },
+        httpLink,
+    ),
+])
+```
+
+This workaround was noted [in this issue on Github.](https://github.com/aws-amplify/amplify-js/issues/992)
+
+## Issues
+- #### Unable to resolve module `buffer`:
+<img width={'100%'} alt="Screen Shot 2022-01-24 at 4 57 07 PM" src="https://user-images.githubusercontent.com/25782070/150878930-80928c4c-0e1e-421b-8314-3c1c580ebf97.png"/>
+
+This can be solved by installing `buffer` and adding it to to the `App.tsx` file as noted in [here on Stack overflow](https://stackoverflow.com/questions/55226768/error-unable-to-resolve-module-buffer-react-native).
+
+```ts
+import { Buffer } from 'buffer';
+
+global.Buffer = Buffer;
+```
+
+## Links
+- [AppSync subscriptions with ApolloClient in React](https://stackoverflow.com/questions/62502579/appsync-subscriptions-with-apolloclient-in-react)
+- [Using Authorization and Subscription links with Apollo Client V3 (No offline support)](https://github.com/awslabs/aws-mobile-appsync-sdk-js#using-authorization-and-subscription-links-with-apollo-client-v3-no-offline-support)
+- [Building a real-time WebSocket client](https://docs.aws.amazon.com/appsync/latest/devguide/real-time-websocket-client.html#appsynclong-real-time-websocket-client-implementation-guide-for-graphql-subscriptions)

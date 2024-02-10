@@ -1,0 +1,58 @@
+---
+title: 'Writing a Custom RxJS Operator'
+publishedOn: '2022-07-23'
+author: Laurence Ininda
+summary: 'RxJs has a ton of operators that you can use within your observable streams. But how would you approach writing your own custom operators for some specific use case?'
+slug: 'writing-a-custom-rxjs-operator'
+tags: ['rxjs', 'javascript']
+type: dev
+image: ''
+imageDescription: ''
+imageCredit: 'Photo by <a href="https://unsplash.com/@solenfeyissa?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Solen Feyissa</a> on <a href="https://unsplash.com/s/photos/flow?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>'
+imageOriginalUrl: 'https://unsplash.com/photos/IfWFKG3FXE4'
+---
+
+# Writing a Custom RxJS Operator
+
+![Cover Image](assets/post-covers/writing-a-custom-rxjs-operator.jpeg)
+
+While working with `rxjs`, there are plenty of operators that one can use within the `.pipe` operator of an observable. Just take a look at the api reference here and you'll realize that `rxjs` provides all the operators that you need for most cases.
+
+However, what if you needed to write your custom operator to transform data the way you wanted, or tweak the `captureError` operator to handle the error in a certain way and return something else in case an error happened.
+
+In an application I was working on, for which I was using [Sentry](https://docs.sentry.io/) to handle any errors, I wanted to have the `captureError` to send the error message to Sentry, and return fallback data in case an error happened.
+
+```tsx
+import { captureException } from '@sentry/angular'
+import { BehaviorSubject, Observable, OperatorFunction, catchError, tap } from 'rxjs'
+
+export function consume<T>(consumer: BehaviorSubject<T>, fallback$: Observable<T>): OperatorFunction<T, T> {
+    return (source$: Observable<T>) => {
+        return source$.pipe(
+            catchError((error) => {
+                captureException(error)
+                return fallback$
+            }),
+            tap(consumer),
+        )
+    }
+}
+```
+
+:::tip
+
+Note that the `rxjs` tap operator takes either an observer object. In our case, our `consumer` is a `Behavior Subject` [which is also an observer](https://rxjs.dev/guide/subject).
+
+:::
+
+The operator above is written in the form of [a curried function](https://javascript.info/currying-partials), that accepts two initial inputs: `consumer` - which in this case was a behavior subject that stores the current value in the observable stream, and `fallback$` which is the data to return in case an error happens. If no error happens, the `captureError` rxjs operator isn't called. In all cases, either the data from the observable stream or the fallback data is passed on to the consuming [behavior Subject.](https://rxjs.dev/api/index/class/BehaviorSubject)
+
+And there we have it! Our own custom RxJS operator 🧞‍♂️
+
+## Links
+
+-   [RxJs documentation](https://rxjs.dev/)
+-   [RxJs Subject reference](https://rxjs.dev/api/index/class/Subject)
+-   [catch / catchError in RxJs](https://www.learnrxjs.io/learn-rxjs/operators/error_handling/catch)
+-   [Sentry JavaScript library documentation](https://docs.sentry.io/platforms/javascript/)
+-   [Currying in JavaScript](https://javascript.info/currying-partials)

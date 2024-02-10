@@ -1,0 +1,218 @@
+---
+title: Using your GitHub Repository as a Database
+publishedOn: '2021-03-01'
+author: Laurence Inida
+summary: You don't have to look far for somewhere to store your content. GitHub is a great place to store your content. Together with the GitHub API, you can use GitHub make this happen.
+slug: using-your-github-repository-as-a-database
+tags: [github, api, database]
+type: dev
+---
+
+# How To: Use your Repo as a Database with the Github GraphQL API
+
+![Cover Image](/assets/post-covers/using-your-github-repository-as-a-database.webp)
+
+:::tip
+You can sort of use your Github repository as a database for your blog posts by leveraging the Github <a href="https://docs.github.com/en/graphql">Graph QL API</a> 😱.
+:::
+
+## Motivation
+
+The Github GraphQL API provides a lot more capabilities than I can cover in one _snack_.
+
+However, in searching for a way to share the small lessons that I pick up week in week out, I knew that publishing through [Contentful](https://www.contentful.com/), which it the CMS, I use for the main content in my blog site, was a little too much to share easily and quicly.
+Posting on Github and sharing that as [gists](https://gist.github.com/laudebugs) seemed like I would be writing too much for a gist that is supposed to be a short code snippet - which was the original title of this section. Although [MichaelCurrin](https://gist.github.com/MichaelCurrin/6777b91e6374cdb5662b64b8249070ea) proves me otherwise! His article is what got me goint in the first place!
+
+## Querying the GraphQL API for posts.
+
+In order to use the Github GraphQL API, you can either use the [API explorer](https://docs.github.com/en/graphql/overview/explorer) by logging in through your github account, use an api testing tool like [Insomnia](https://support.insomnia.rest/article/61-graphql), or you can use it programmatically.
+
+Since I was using the Apollo Graph QL library to query my backend - that helps me manage comments and likes, I began to do a little research on how to query the Github GraphQL API. I will link the articles below.
+This [stack overflow](https://stackoverflow.com/questions/58576940/how-to-handle-authorization-header-with-apollo-graphql) answered how to add an authorization header to an Apollo Client Query.
+
+## The Query
+
+We will be using writing our query in a node.js environment using both [Apollo Client](https://github.com/apollographql/apollo-client) and [Axios](https://github.com/axios/axios)
+
+### 1. Obtain your github public access token
+
+The only permission you need for this task is `public_repo` under `repo`:
+
+- [ ] repo
+  - [x] public_repo
+
+Give your token a name and will look something like this:
+
+```txt
+89fdd35bcd40787b519e97462cec0f9975a66a58
+```
+
+Note the token above is revoked and you'll need to generate yours. Once you're done, we're ready for the next step!
+
+### 2. Querying the repo
+
+In my case, I will be looking for files in my repository called `articles`. If you'd like to use your own repository, simply make note of your repository name.
+
+### Using the Apollo Client
+
+1. Install the Apollo client
+   ```bash
+   npm install @apollo/client graphql
+   ```
+2. Working in your js file, import the Apollo client and a few methods that we will make use of:
+   ```js twoslash
+   import { ApolloClient, InMemoryCache, gql, ApolloLink, HttpLink } from '@apollo/client'
+   ```
+3. Initialize a new apollo client with the github graphQL endpoint and your token
+
+   ```js twoslash
+   const token = '89fdd35bcd40787b519e97462cec0f9975a66a58'
+
+   const endpoint = 'https://api.github.com/graphql'
+
+   // Add the toke to the header of your client for all your requests
+   const githubLClient = new ApolloClient({
+     uri: endpoint,
+     headers: {
+       authorization: `Bearer ${token}`
+     },
+     cache: new InMemoryCache({
+       addTypename: false
+     })
+   })
+   ```
+
+4. Make the query
+   I referenced github user [int128's gist](https://gist.github.com/int128/b0e75e3043c8a33808cea0089d988ed3) for the structure of the graphQl query:
+   ```js twoslash
+   let request = await githubClient.query({
+     query: gql`
+       {
+         repository(owner: "laudebugs", name: "articles") {
+           defaultBranchRef {
+             target {
+               ... on Commit {
+                 file(path: "/") {
+                   type
+                   object {
+                     ... on Tree {
+                       entries {
+                         name
+                         object {
+                           ... on Blob {
+                             text
+                           }
+                         }
+                       }
+                     }
+                   }
+                 }
+               }
+             }
+           }
+         }
+       }
+     `
+   })
+   ```
+5. Parse your output to obtain the file's contents.
+   By making this same query on Github's GraphQL explorer, the data returned, which is essentially a json object, at the time of writing this, looks like this:
+   ```json
+   {
+     "data": {
+       "repository": {
+         "defaultBranchRef": {
+           "target": {
+             "file": {
+               "type": "tree",
+               "object": {
+                 "entries": [
+                   {
+                     "name": "QraphQL.md",
+                     "object": {
+                       "text": "# Exploring GraphQL\n"
+                     }
+                   },
+                   {
+                     "name": "README.md",
+                     "object": {
+                       "text": "# Articles"
+                     }
+                   }
+                 ]
+               }
+             }
+           }
+         }
+       }
+     }
+   }
+   ```
+   So, if to obtain the entries, we would access them by:
+   ```js twoslash
+   let result = request.data.repository.defaultBranchRef.target.file.type.object.entries
+   ```
+
+#### Using Axios
+
+1. Install the [axios npm package](https://github.com/axios/axios)
+   ```bash
+   npm install axios
+   ```
+2. Import exios into your node project:
+   ```js twoslash
+   import axios from 'axios'
+   ```
+3. initialize an authentication object and the query string that will be attatched to your request
+
+   ```js twoslash
+   // The Authorization in the header of the request
+   const oauth = { Authorization: 'bearer ' + token }
+
+   // The Query String
+   const query = `
+           {
+             repository(owner: "laudebugs", name: "articles") {
+               defaultBranchRef {
+                 target {
+                   ... on Commit {
+                     file(path: "/") {
+                       type
+                       object {
+                         ... on Tree {
+                           entries {
+                             name
+                             object {
+                               ... on Blob {
+                                 text
+                               }
+                             }
+                           }
+                         }
+                       }
+                     }
+                   }
+                 }
+               }
+             }
+           }
+         `
+   ```
+
+4. Make the request, adding in the query and the header
+   ```js twoslash
+   let request = axios.post(githubUrl, { query: query }, { headers: oauth })
+   ```
+5. Parse your output as above:
+   ```js twoslash
+   let result = request.data.repository.defaultBranchRef.target.file.type.object.entries
+   ```
+
+## Referenced articles
+
+- [Graph QL query](https://gist.github.com/MichaelCurrin/6777b91e6374cdb5662b64b8249070ea) for getting files.
+- [GraphQL Queries using Insomnia](https://support.insomnia.rest/article/61-graphql)
+- How to create a personal access token from your github account: [Creating a personal access token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token)
+- [Set Authorization Header with Apollo Client](https://medium.com/risan/set-authorization-header-with-apollo-client-e934e6517ccf)
+- [How to handle authorization header with apollo graphql? - Stack Overflow](https://stackoverflow.com/questions/58576940/how-to-handle-authorization-header-with-apollo-graphql)
+- [Get started with GitHub GraphQL API 👨‍🔬](https://dev.to/thomasaudo/get-started-with-github-grapql-api--1g8b) on Dev
