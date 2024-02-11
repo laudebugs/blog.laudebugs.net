@@ -26,7 +26,6 @@ export const PostsArchive = () => {
             <div
                 style={{
                     display: 'grid',
-                    
                     gap: '1em',
                     paddingTop: 10,
                 }}

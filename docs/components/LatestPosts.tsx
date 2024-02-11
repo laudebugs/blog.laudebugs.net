@@ -37,9 +37,6 @@ export const LatestPosts = () => {
             </div>
 
             <hr style={{color: 'var(--vocs-color_border'}}/>
-            <div style={{textAlign: 'center', display: 'flex', justifyContent: 'space-evenly', paddingTop: 20}}>
-                <Button href="/archive" variant="accent">View all posts</Button>
-            </div>
         </div>
 
     )
