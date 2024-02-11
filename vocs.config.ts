@@ -14,6 +14,12 @@ export default defineConfig({
                 items: getPostsByYear(),
             },
         ],
+        '/archive': [
+            {
+                text: 'Archive',
+                items: getPostsByYear(),
+            },
+        ]
     },
     editLink: {
         pattern: 'https://github.com/laudebugs/blog.laudebugs.me/edit/main/docs/pages/:path',
