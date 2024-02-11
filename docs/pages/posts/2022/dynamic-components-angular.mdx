@@ -132,7 +132,7 @@ In this case, we inject the `ViewContainerRef` into the component:
 
 Taking the `@ViewChild` use case, (the same applies to the `@ViewChildren` case), the view queries are set before the `ngAfterViewInit` life cycle hook is called. We can then create our dynamic components at this point.
 
-```ts twoslash
+```ts
 import { Component, AfterViewInit, ViewChild, } from '@angular/core';
 
 /* We defined the MovieHostDirective earlier */
@@ -164,7 +164,7 @@ export class HomeComponent extends AfterViewInit {
 
 Similar example while using a template reference as an anchor:
 
-```ts twoslash
+```ts
 // ... code ommited
 @Component({
 	selector: 'app-home',
@@ -184,7 +184,7 @@ export class HomeComponent extends AfterViewInit {
 
 Similar example using the host element as the anchor:
 
-```ts twoslash
+```ts
 // ... code ommited
 @Component({
 	selector: 'app-home',
@@ -225,7 +225,7 @@ Some ways to resolve this is to move our code into the `ngAfterContentInit` life
 
 1. `ngAfterContentInit`
 
-    ```ts twoslash
+    ```ts
     // code ommitted
     export class HomeComponent implements AfterContentInit {
 
@@ -274,7 +274,7 @@ Things begin to get a little more interesting as we explore this options object 
 
 The `index` parameter allows us to insert a dynamically created component at a particular index. Say we would like to create a second component dynamically and place it at index `0`, then we would do something like:
 
-```ts twoslash
+```ts
 const movieComponent2 = viewContainerRef.createComponent<MovieComponent>(MovieComponent, { index: 0 })
 ```
 

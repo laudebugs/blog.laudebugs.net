@@ -13,6 +13,9 @@ dependencies:
   '@types/react':
     specifier: latest
     version: 18.2.55
+  '@uidotdev/usehooks':
+    specifier: ^2.4.1
+    version: 2.4.1(react-dom@18.2.0)(react@18.2.0)
   date-fns:
     specifier: ^3.3.1
     version: 3.3.1
@@ -45,6 +48,9 @@ dependencies:
     version: 1.0.0-alpha.35(@types/node@20.11.17)(@types/react@18.2.55)(react-dom@18.2.0)(react@18.2.0)(rollup@4.10.0)(ts-node@10.9.2)(typescript@5.3.3)
 
 devDependencies:
+  '@types/node':
+    specifier: ^20.11.17
+    version: 20.11.17
   prettier:
     specifier: ^3.2.5
     version: 3.2.5
@@ -1850,6 +1856,17 @@ packages:
       debug: 4.3.4
     transitivePeerDependencies:
       - supports-color
+    dev: false
+
+  /@uidotdev/usehooks@2.4.1(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-1I+RwWyS+kdv3Mv0Vmc+p0dPYH0DTRAo04HLyXReYBL9AeseDWUJyi4THuksBJcu9F0Pih69Ak150VDnqbVnXg==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
     dev: false
 
   /@ungap/structured-clone@1.2.0:

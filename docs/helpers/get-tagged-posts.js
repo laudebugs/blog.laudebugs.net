@@ -1,13 +1,19 @@
-import { compareAsc, parseISO } from 'date-fns'
+import { compareAsc, compareDesc, parseISO } from 'date-fns'
 import { readdirSync, readFileSync } from 'fs'
 import matter from 'gray-matter'
 import path from 'path'
 
+export const getImageForPost = (slug) => {
+    const imagesPath = 'docs/public/assets/post-covers'
+    const images = readdirSync(imagesPath)
+    const image = images.find(_image => _image.includes(slug))
+    return image ?? ''
+  }
+  
 /**
  * Get all posts based on tags
  * Sorted in order of most popular tag and date
  */
-
 export const getAllPosts = () => {
     const postsDirectory = path.join(process.cwd(), 'docs/pages/posts')
     const yearDirectories = readdirSync(postsDirectory)
@@ -24,16 +30,20 @@ export const getAllPosts = () => {
                 const { content, data } = matter(post)
                 return {
                     content,
-                    frontMatter: data
+                    frontMatter: data,
+                    image: getImageForPost(data.slug)
                 }
             }).flat()
-            .sort((a, b) => compareAsc(parseISO(a.frontMatter.publishedOn), parseISO(b.frontMatter.publishedOn)))
-            .reverse()
+            .sort((a, b) => compareDesc(parseISO(a.frontMatter.publishedOn), parseISO(b.frontMatter.publishedOn)))
             return posts
-        })
-        .flat()
+        }).reverse().flat()
     return allPostsData
 }
+/**
+ * Get all posts based on tags
+ * Sorted in order of most popular tag and date
+ * @returns {Record<string, {count: number, posts: {title: string, slug: string, date: string}[], }>}
+ */
 export const getPostsByTags = () => {
 
     const allPostsData = getAllPosts()
@@ -62,10 +72,14 @@ export const getPostsByTags = () => {
                 }
 
             return tagCollection
-        }, {}as Record<string, {count: number, posts: {title: string, slug: string, date: string}[], }>)
+        }, {})
     return tagBasedPosts
 }
 
+/**
+ * 
+ * @returns {Array<{text: string, collapsed: boolean, items: {text: string, link: string}[]}>}
+ */
 export const getPostsByYear = () => {
     const allPostsData = getAllPosts()
     const yearBasedPosts = allPostsData.reduce((yearCollection, post) => {
@@ -84,7 +98,7 @@ export const getPostsByYear = () => {
             }]
         }
         return yearCollection
-    }, {} as Record<number, {title: string, slug: string, date: string}[]>)
+    }, {} )
     const _yearBasedPosts = Object.entries(yearBasedPosts).sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
     .map(([year, posts], index) => {
         return {
@@ -108,6 +122,7 @@ export const formatTagsForSideNav = () => {
     const tags = Object.entries(tagBasedPosts)
         .sort((a, b) => b[1].count - a[1].count)
         .map(([tag, posts]) => tag)
+
     return tags.map((key, index) => {
         return {
             text: `${key} (${tagBasedPosts[key].count})`,
@@ -115,7 +130,7 @@ export const formatTagsForSideNav = () => {
             items: tagBasedPosts[key].posts.sort(
                 (a, b) => compareAsc(parseISO(a.date), parseISO(b.date))
             ).reverse()
-            .map(post => {
+            .map((post) => {
                 return {
                     text: post.title,
                     link: `/posts/${post.slug}`
@@ -124,4 +139,3 @@ export const formatTagsForSideNav = () => {
         }
     })
 }
-// console.log(JSON.stringify(formatTagsForSideNav(), null, 2))

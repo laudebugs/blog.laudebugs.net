@@ -30,16 +30,16 @@ If, say `@boomerang/common` imports `@boomerang/utils`, when trying to build `@b
 
 When I looked into what was causing the issue, its seems like a small tweak to the `tsConfig.base.json` at the root of the workspace by adding the `@boomerang/utils` dist path to the `compilerOptions` `paths` fixes the import issue.
 
-```diff
+```json
 {
 	"compilerOptions": {
 		"paths: {
 			"@boomerang/common": ["libs/common/src/index.ts"],
-- 		    "@boomerang/utils": ["libs/utils/src/index.ts"],
-+ 		    "@boomerang/utils": [
-+ 			    "dist/libs/utils",
-+ 			    "libs/utils/src/index.ts"
-+ 		    ]
+ 		    "@boomerang/utils": ["libs/utils/src/index.ts"],	// [!code --]
+ 		    "@boomerang/utils": [	// [!code ++]
+ 			    "dist/libs/utils",	// [!code ++]
+ 			    "libs/utils/src/index.ts"	// [!code ++]
+ 		    ]
 		}
 	}
 }
