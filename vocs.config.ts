@@ -6,7 +6,7 @@ export default defineConfig({
     sidebar: {
         '/posts/': [
             {
-                text: 'Tags',
+                text: 'Topics',
                 items: formatTagsForSideNav(),
             },
             {
