@@ -1,6 +1,9 @@
+export function getImageForPost(slug: any): string;
+
 export function getAllPosts(): {
     content: any;
     frontMatter: any;
+    image: string;
 }[];
 export function getPostsByTags(): Record<string, {
     count: number;
