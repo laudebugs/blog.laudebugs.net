@@ -20,7 +20,7 @@ export default defineConfig({
         text: 'Suggest changes to this page',
     },
     topNav: [
-        { text: 'Home', link: '/', match: '/' },
+        { text: 'Archive', link: '/archive', match: '/archive' },
         { text: 'Personal Website', link: 'https://www.laudebugs.me' },
         {
             text: 'Other Blogs',
