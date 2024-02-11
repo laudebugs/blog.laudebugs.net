@@ -6,7 +6,7 @@
     "predev": "node docs/helpers/gen-post-archive.js",
     "dev": "vocs dev",
     "prebuild": "node docs/helpers/gen-post-archive.js",
-    "build": "vocs build",
+    "build": "node docs/helpers/gen-post-archive.js && vocs build",
     "preview": "vocs preview",
     "gen-types": "npx -p typescript tsc docs/helpers/*.js --declaration --allowJs --emitDeclarationOnly"
   },

@@ -23,7 +23,7 @@ export const LatestPosts = () => {
                 <a style={{color: 'var(--vocs-color_link)'}} href={`/posts/${year}/${latestPost.frontMatter.slug}`}>Read more</a>
             </a>
 
-            <div style={{display: 'grid', gridTemplateColumns: (size.width ?? 0)  > 600 ? ('1fr 1fr'): '1fr', gap: '1em', paddingTop: 10}}>
+            <div style={{display: 'grid', gridTemplateColumns: (size.width ?? 601)  > 600 ? ('1fr 1fr'): '1fr', gap: '1em', paddingTop: 10}}>
                 {recentThreePosts.map((post, index) => (
                     <a key={index} style={{marginBottom: 10}} href={`/posts/${year}/${post.frontMatter.slug}`}>
                         <h3 style={{fontSize: 20}}>{post.frontMatter.title}</h3>
@@ -34,6 +34,10 @@ export const LatestPosts = () => {
                     </a>
                 ))}
             </div>
+
+            <hr />
+
+            
         </div>
 
     )

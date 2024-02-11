@@ -2,16 +2,28 @@ import { defineConfig } from 'vocs'
 import { formatTagsForSideNav, getPostsByYear } from './docs/helpers/get-tagged-posts.js'
 export default defineConfig({
     title: "Bugasu's Tech Blog",
-    sidebar: [
-        {
-            text: 'Tags',
-            items: formatTagsForSideNav(),
-        },
-        {
-            text: 'Archive',
-            items: getPostsByYear(),
-        },
-    ],
+    sidebar: {
+        '/posts/': [
+            {
+                text: 'Tags',
+                items: formatTagsForSideNav(),
+            },
+            {
+                text: 'Archive',
+                items: getPostsByYear(),
+            },
+        ],
+        // '/': [
+        //     {
+        //         text: 'Archive',
+        //         link: '/archive',
+        //     },
+        //     {
+        //         text: 'Topics',
+        //         link: '/topics',
+        //     }
+        // ]
+    },
     topNav: [
         { text: 'Home', link: '/', match: '/' },
         { text: 'Personal Website', link: 'https://www.laudebugs.me' },
