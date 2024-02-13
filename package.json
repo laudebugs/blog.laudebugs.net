@@ -3,8 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "predev": "node docs/helpers/gen-post-archive.js",
-    "dev": "vocs dev",
+    "dev": "node docs/helpers/gen-post-archive.js && vocs dev",
     "prebuild": "node docs/helpers/gen-post-archive.js",
     "build": "node docs/helpers/gen-post-archive.js && vocs build",
     "preview": "vocs preview",

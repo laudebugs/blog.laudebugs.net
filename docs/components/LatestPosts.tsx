@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import AllPosts from '../../out/posts.json'
+import AllPosts from '../public/assets/posts.json'
 import { useWindowSize } from "@uidotdev/usehooks";
 import { Button } from 'vocs/components';
 

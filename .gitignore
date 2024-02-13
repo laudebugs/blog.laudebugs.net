@@ -1,4 +1,4 @@
 node_modules
 docs/dist
-out
 shades-of-purple.ts
+docs/public/assets/posts.json
