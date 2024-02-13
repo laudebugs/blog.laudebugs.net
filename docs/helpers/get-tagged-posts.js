@@ -30,7 +30,10 @@ export const getAllPosts = () => {
                     const { content, data } = matter(post)
                     return {
                         content,
-                        frontMatter: data,
+                        frontMatter: {
+                            ...data,
+                            blogSlug: `/posts/${year}/${filename}` 
+                        },
                         image: getImageForPost(data.slug),
                     }
                 })
