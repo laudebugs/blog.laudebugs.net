@@ -22,13 +22,13 @@ export default defineConfig({
         ]
     },
     editLink: {
-        pattern: 'https://github.com/laudebugs/blog.laudebugs.me/edit/main/docs/pages/:path',
+        pattern: 'https://github.com/laudebugs/blog.laudebugs.net/edit/main/docs/pages/:path',
         text: 'Suggest changes to this page',
     },
     topNav: [
         { text: 'Home', link: '/', match: '/' },
         { text: 'Archive', link: '/archive', match: '/archive' },
-        { text: 'Personal Website', link: 'https://www.laudebugs.me' },
+        { text: 'Personal Website', link: 'https://www.laudebugs.net' },
         {
             text: 'Other Blogs',
             items: [
