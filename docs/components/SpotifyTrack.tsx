@@ -3,8 +3,9 @@ export const SpotifyTrack = (props: any) => {
       <div>
         <iframe
           src={props.src}
-          style={{ borderRadius: '12px', height: '100px' }}
+          style={{ borderRadius: '12px' }}
           width="100%"
+          height={152}
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"
         ></iframe>
